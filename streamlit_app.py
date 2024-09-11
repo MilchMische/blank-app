@@ -111,7 +111,7 @@ def plot_and_save_pivot_tables(pivot_hours, pivot_days):
     return image_path_hours, image_path_days
 
 def main():
-    st.title('AllgemeinVerfügung_Überschreitungen_Station(Hannover)')
+    st.title('Übersicht der Temperaturen für Allgemeinverfügung')
 
     url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
     keyword = 'produkt_tu_stunde'
