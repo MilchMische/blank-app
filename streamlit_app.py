@@ -125,7 +125,7 @@ def main():
         df = process_data(target_file)
         pivot_hours, pivot_days = create_pivot_tables(df)
 
-        excel_path = 'AllgemeinVerfügung_Überschreitungen_Station(Hannover).xlsx'
+        excel_path = 'AllgemeinVerfügung_Überschreitungen_StationHannover.xlsx'
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
             pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
