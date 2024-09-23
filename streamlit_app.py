@@ -119,7 +119,7 @@ def plot_pivot_tables(pivot_hours, pivot_days):
 url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
 keyword = 'produkt_tu_stunde'
 
-if st.button('Daten herunterladen und analysieren'):
+if st.button('Daten aufbereiten'):
     target_file = download_and_extract(url, keyword)
     if not target_file:
         st.error("Die Zieldatei konnte nicht heruntergeladen oder extrahiert werden.")
