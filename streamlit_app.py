@@ -121,6 +121,13 @@ def plot_monthly_temperatures(df, writer):
     monthly_avg = df.groupby('Monat_Jahr')['Wert'].mean().reset_index()
     monthly_avg['Monat_Jahr'] = monthly_avg['Monat_Jahr'].dt.to_timestamp()
 
+    # Filtere die Daten, um nur Temperaturen über -5 Grad zu berücksichtigen
+    monthly_avg = monthly_avg[monthly_avg['Wert'] > -5]
+
+    if monthly_avg.empty:
+        st.warning("Keine Temperaturdaten über -5 Grad zum Zeichnen vorhanden.")
+        return
+
     plt.figure(figsize=(12, 8))
     plt.plot(monthly_avg['Monat_Jahr'], monthly_avg['Wert'], marker='o', label='Monatliche Durchschnittstemperatur')
     
@@ -172,7 +179,7 @@ if st.button('Daten aufbereiten'):
             worksheet_hours.add_image(img_hours, 'E5')
             worksheet_days.add_image(img_days, 'E5')
 
-            # Plot der monatlichen Temperaturen hinzufügen
+            # Plot für monatliche Durchschnittstemperaturen
             plot_monthly_temperatures(df, writer)
 
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
