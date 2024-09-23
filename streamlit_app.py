@@ -1,3 +1,4 @@
+import pandas as pd
 import requests
 import zipfile
 import io
@@ -92,27 +93,6 @@ def save_monthly_data(df, writer):
                         if cell.value and cell.value >= 27:
                             cell.fill = fill
 
-def plot_pivot_tables(pivot_hours, pivot_days):
-    """Plot the pivot tables as images."""
-    def plot_pivot(pivot_table, title):
-        plt.figure(figsize=(12, 8))
-        pivot_table.drop(columns='Summe').T.plot(kind='line', marker='o')  # Transponieren und Linienplot ohne die Summe
-        plt.title(title)
-        plt.xlabel('Monat')
-        plt.ylabel('Anzahl der Überschreitungen')
-        plt.xticks(range(12), ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'], rotation=45)
-        plt.legend(title='Jahr')
-        plt.tight_layout()
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-        plt.savefig(temp_file.name, bbox_inches='tight')
-        plt.close()
-        return temp_file.name
-
-    image_path_hours = plot_pivot(pivot_hours, 'Anzahl der Stunden mit Temperaturen ≥ 27°C pro Jahr und Monat')
-    image_path_days = plot_pivot(pivot_days, 'Anzahl der Tage mit Temperaturen ≥ 27°C pro Jahr und Monat')
-
-    return image_path_hours, image_path_days
-
 # Hauptfunktion
 url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
 keyword = 'produkt_tu_stunde'
@@ -130,14 +110,6 @@ if st.button('Daten aufbereiten'):
             pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
             pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
             save_monthly_data(df, writer)
-            image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
-            workbook = writer.book
-            worksheet_hours = workbook['Überschreitungen (Stunden)']
-            worksheet_days = workbook['Überschreitungen (Tage)']
-            img_hours = Image(image_path_hours)
-            img_days = Image(image_path_days)
-            worksheet_hours.add_image(img_hours, 'E5')
-            worksheet_days.add_image(img_days, 'E5')
 
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
         with open(excel_path, 'rb') as f:
