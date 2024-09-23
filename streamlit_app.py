@@ -154,13 +154,13 @@ if st.button('Daten aufbereiten'):
             pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
             save_monthly_data(df, writer)
 
-            # Neue Blätter für Durchschnittstemperaturen
+            # Neues Blatt für Durchschnittstemperaturen
             monthly_avg.to_excel(writer, sheet_name='Monatliche Durchschnitte', index=False)
 
             # Histogramm speichern
-            worksheet = writer.book.create_sheet(title='Temperaturverteilung')
+            histogram_sheet = writer.book.create_sheet(title='Temperaturverteilung')
             img_histogram = Image(histogram_path)
-            worksheet.add_image(img_histogram, 'A1')
+            histogram_sheet.add_image(img_histogram, 'A1')
 
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
         with open(excel_path, 'rb') as f:
