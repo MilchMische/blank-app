@@ -62,6 +62,24 @@ def create_pivot_tables(df):
 
     return pivot_hours, pivot_days
 
+def calculate_monthly_averages(df):
+    """Berechne monatliche Durchschnittstemperaturen."""
+    monthly_avg = df.groupby(['Jahr', 'Monat'])['Wert'].mean().reset_index()
+    monthly_avg.rename(columns={'Wert': 'Durchschnittstemperatur'}, inplace=True)
+    return monthly_avg
+
+def plot_temperature_distribution(df):
+    """Erstelle ein Histogramm der Temperaturverteilung."""
+    plt.figure(figsize=(10, 6))
+    df['Wert'].hist(bins=20)
+    plt.title('Temperaturverteilung')
+    plt.xlabel('Temperatur (°C)')
+    plt.ylabel('Häufigkeit')
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+    plt.savefig(temp_file.name)
+    plt.close()
+    return temp_file.name
+
 def save_monthly_data(df, writer):
     """Save individual sheets for each year and month with date, time, and temperature."""
     months = {
@@ -126,19 +144,23 @@ if st.button('Daten aufbereiten'):
         df = process_data(target_file)
         pivot_hours, pivot_days = create_pivot_tables(df)
 
+        # Berechnungen für die neuen Daten
+        monthly_avg = calculate_monthly_averages(df)
+        histogram_path = plot_temperature_distribution(df)
+
         excel_path = 'Allgemeinverfügung_Überschreitungen_StationHannover.xlsx'
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
             pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
             save_monthly_data(df, writer)
-            image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
-            workbook = writer.book
-            worksheet_hours = workbook['Überschreitungen (Stunden)']
-            worksheet_days = workbook['Überschreitungen (Tage)']
-            img_hours = Image(image_path_hours)
-            img_days = Image(image_path_days)
-            worksheet_hours.add_image(img_hours, 'E5')
-            worksheet_days.add_image(img_days, 'E5')
+
+            # Neue Blätter für Durchschnittstemperaturen
+            monthly_avg.to_excel(writer, sheet_name='Monatliche Durchschnitte', index=False)
+
+            # Histogramm speichern
+            worksheet = writer.book.create_sheet(title='Temperaturverteilung')
+            img_histogram = Image(histogram_path)
+            worksheet.add_image(img_histogram, 'A1')
 
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
         with open(excel_path, 'rb') as f:
