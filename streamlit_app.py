@@ -56,9 +56,9 @@ def create_pivot_tables(df):
     ).reindex(columns=range(1, 13), fill_value=0)
     pivot_days.columns = ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
-    # Summen entfernen
-    # pivot_hours['Summe'] = pivot_hours.sum(axis=1)
-    # pivot_days['Summe'] = pivot_days.sum(axis=1)
+    # Summen hinzufügen
+    pivot_hours['Summe'] = pivot_hours.sum(axis=1)
+    pivot_days['Summe'] = pivot_days.sum(axis=1)
 
     return pivot_hours, pivot_days
 
@@ -97,7 +97,7 @@ def plot_pivot_tables(pivot_hours, pivot_days):
     """Plot the pivot tables as images."""
     def plot_pivot(pivot_table, title):
         plt.figure(figsize=(12, 8))
-        pivot_table.T.plot(kind='line', marker='o')  # Transponieren und Linienplot
+        pivot_table.drop(columns='Summe').T.plot(kind='line', marker='o')  # Transponieren und Linienplot ohne die Summe
         plt.title(title)
         plt.xlabel('Monat')
         plt.ylabel('Anzahl der Überschreitungen')
