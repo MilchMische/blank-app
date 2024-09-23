@@ -1,4 +1,3 @@
-
 import pandas as pd
 import requests
 import zipfile
@@ -57,9 +56,9 @@ def create_pivot_tables(df):
     ).reindex(columns=range(1, 13), fill_value=0)
     pivot_days.columns = ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
-    # Summen hinzufügen
-    pivot_hours['Summe'] = pivot_hours.sum(axis=1)
-    pivot_days['Summe'] = pivot_days.sum(axis=1)
+    # Summen entfernen
+    # pivot_hours['Summe'] = pivot_hours.sum(axis=1)
+    # pivot_days['Summe'] = pivot_days.sum(axis=1)
 
     return pivot_hours, pivot_days
 
