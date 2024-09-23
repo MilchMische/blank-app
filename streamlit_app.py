@@ -115,31 +115,28 @@ def plot_pivot_tables(pivot_hours, pivot_days):
 
     return image_path_hours, image_path_days
 
-def plot_monthly_temperatures(df, writer):
-    """Plot monthly temperature averages and add trendline to a new sheet."""
-    df['Monat_Jahr'] = df['Zeitstempel'].dt.to_period('M')
-    monthly_avg = df.groupby('Monat_Jahr')['Wert'].mean().reset_index()
-    monthly_avg['Monat_Jahr'] = monthly_avg['Monat_Jahr'].dt.to_timestamp()
+def plot_annual_temperatures(df, writer):
+    """Plot annual average temperatures and add trendline to a new sheet."""
+    annual_avg = df.groupby('Jahr')['Wert'].mean().reset_index()
 
     # Filtere die Daten, um nur Temperaturen über -5 Grad zu berücksichtigen
-    monthly_avg = monthly_avg[monthly_avg['Wert'] > -5]
+    annual_avg = annual_avg[annual_avg['Wert'] > -5]
 
-    if monthly_avg.empty:
+    if annual_avg.empty:
         st.warning("Keine Temperaturdaten über -5 Grad zum Zeichnen vorhanden.")
         return
 
     plt.figure(figsize=(12, 8))
-    plt.plot(monthly_avg['Monat_Jahr'], monthly_avg['Wert'], marker='o', label='Monatliche Durchschnittstemperatur')
+    plt.plot(annual_avg['Jahr'], annual_avg['Wert'], marker='o', label='Jährliche Durchschnittstemperatur')
     
     # Trendlinie
-    z = np.polyfit(monthly_avg.index, monthly_avg['Wert'], 1)
+    z = np.polyfit(annual_avg['Jahr'], annual_avg['Wert'], 1)
     p = np.poly1d(z)
-    plt.plot(monthly_avg['Monat_Jahr'], p(monthly_avg.index), "r--", label='Trendlinie')
+    plt.plot(annual_avg['Jahr'], p(annual_avg['Jahr']), "r--", label='Trendlinie')
 
-    plt.title('Monatliche Durchschnittstemperaturen mit Trendlinie')
-    plt.xlabel('Monat/Jahr')
+    plt.title('Jährliche Durchschnittstemperaturen mit Trendlinie')
+    plt.xlabel('Jahr')
     plt.ylabel('Durchschnittstemperatur (°C)')
-    plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
     
@@ -149,7 +146,7 @@ def plot_monthly_temperatures(df, writer):
     plt.close()
 
     # Neues Blatt mit dem Plot hinzufügen
-    worksheet = writer.book.create_sheet(title='Monatliche Temperaturen')
+    worksheet = writer.book.create_sheet(title='Jährliche Temperaturen')
     img = Image(temp_file.name)
     worksheet.add_image(img, 'A1')
 
@@ -169,6 +166,7 @@ if st.button('Daten aufbereiten'):
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
             pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
+            plot_annual_temperatures(df, writer)  # Neues Blatt an dritter Stelle
             save_monthly_data(df, writer)
             image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
             workbook = writer.book
@@ -178,9 +176,6 @@ if st.button('Daten aufbereiten'):
             img_days = Image(image_path_days)
             worksheet_hours.add_image(img_hours, 'E5')
             worksheet_days.add_image(img_days, 'E5')
-
-            # Plot für monatliche Durchschnittstemperaturen
-            plot_monthly_temperatures(df, writer)
 
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
         with open(excel_path, 'rb') as f:
