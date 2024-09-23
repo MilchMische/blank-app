@@ -9,7 +9,6 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
 from openpyxl.drawing.image import Image
 import streamlit as st
-import numpy as np
 
 def download_and_extract(url, keyword):
     """Download and extract the data file."""
@@ -115,41 +114,6 @@ def plot_pivot_tables(pivot_hours, pivot_days):
 
     return image_path_hours, image_path_days
 
-def plot_annual_temperatures(df, writer):
-    """Plot annual average temperatures and add trendline to a new sheet."""
-    annual_avg = df.groupby('Jahr')['Wert'].mean().reset_index()
-
-    # Filtere die Daten, um nur Temperaturen über -5 Grad zu berücksichtigen
-    annual_avg = annual_avg[annual_avg['Wert'] > -5]
-
-    if annual_avg.empty:
-        st.warning("Keine Temperaturdaten über -5 Grad zum Zeichnen vorhanden.")
-        return
-
-    plt.figure(figsize=(12, 8))
-    plt.plot(annual_avg['Jahr'], annual_avg['Wert'], marker='o', label='Jährliche Durchschnittstemperatur')
-    
-    # Trendlinie
-    z = np.polyfit(annual_avg['Jahr'], annual_avg['Wert'], 1)
-    p = np.poly1d(z)
-    plt.plot(annual_avg['Jahr'], p(annual_avg['Jahr']), "r--", label='Trendlinie')
-
-    plt.title('Jährliche Durchschnittstemperaturen mit Trendlinie')
-    plt.xlabel('Jahr')
-    plt.ylabel('Durchschnittstemperatur (°C)')
-    plt.legend()
-    plt.tight_layout()
-    
-    # Speichern als temporäre Bilddatei
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-    plt.savefig(temp_file.name, bbox_inches='tight')
-    plt.close()
-
-    # Neues Blatt mit dem Plot hinzufügen
-    worksheet = writer.book.create_sheet(title='Jährliche Temperaturen')
-    img = Image(temp_file.name)
-    worksheet.add_image(img, 'A1')
-
 # Hauptfunktion
 url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
 keyword = 'produkt_tu_stunde'
@@ -166,7 +130,6 @@ if st.button('Daten aufbereiten'):
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
             pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
-            plot_annual_temperatures(df, writer)  # Neues Blatt an dritter Stelle
             save_monthly_data(df, writer)
             image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
             workbook = writer.book
