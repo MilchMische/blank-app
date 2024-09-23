@@ -1,14 +1,15 @@
+
 import pandas as pd
 import requests
 import zipfile
 import io
 import tempfile
 import matplotlib.pyplot as plt
-import streamlit as st
-from openpyxl import load_workbook
+from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
 from openpyxl.drawing.image import Image
+import streamlit as st
 
 def download_and_extract(url, keyword):
     """Download and extract the data file."""
@@ -56,6 +57,10 @@ def create_pivot_tables(df):
     ).reindex(columns=range(1, 13), fill_value=0)
     pivot_days.columns = ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
 
+    # Summen hinzufügen
+    pivot_hours['Summe'] = pivot_hours.sum(axis=1)
+    pivot_days['Summe'] = pivot_days.sum(axis=1)
+
     return pivot_hours, pivot_days
 
 def save_monthly_data(df, writer):
@@ -89,8 +94,8 @@ def save_monthly_data(df, writer):
                         if cell.value and cell.value >= 27:
                             cell.fill = fill
 
-def plot_and_save_pivot_tables(pivot_hours, pivot_days):
-    """Plot and save the pivot tables as images."""
+def plot_pivot_tables(pivot_hours, pivot_days):
+    """Plot the pivot tables as images."""
     def plot_pivot(pivot_table, title):
         plt.figure(figsize=(12, 8))
         pivot_table.T.plot(kind='line', marker='o')  # Transponieren und Linienplot
@@ -110,27 +115,24 @@ def plot_and_save_pivot_tables(pivot_hours, pivot_days):
 
     return image_path_hours, image_path_days
 
-def main():
-    st.title('Übersicht der Temperaturen für Allgemeinverfügung')
+# Hauptfunktion
+url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
+keyword = 'produkt_tu_stunde'
 
-    url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
-    keyword = 'produkt_tu_stunde'
-
-    if st.button('Daten aufbereiten'):
-        target_file = download_and_extract(url, keyword)
-        if not target_file:
-            st.error("Die Zieldatei konnte nicht heruntergeladen oder extrahiert werden.")
-            return
-
+if st.button('Daten herunterladen und analysieren'):
+    target_file = download_and_extract(url, keyword)
+    if not target_file:
+        st.error("Die Zieldatei konnte nicht heruntergeladen oder extrahiert werden.")
+    else:
         df = process_data(target_file)
         pivot_hours, pivot_days = create_pivot_tables(df)
 
-        excel_path = 'AllgemeinVerfügung_Überschreitungen_StationHannover.xlsx'
+        excel_path = 'wetterdaten_analyse_jahr_monat_linie.xlsx'
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
             pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
             pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
             save_monthly_data(df, writer)
-            image_path_hours, image_path_days = plot_and_save_pivot_tables(pivot_hours, pivot_days)
+            image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
             workbook = writer.book
             worksheet_hours = workbook['Überschreitungen (Stunden)']
             worksheet_days = workbook['Überschreitungen (Tage)']
@@ -140,8 +142,5 @@ def main():
             worksheet_days.add_image(img_days, 'E5')
 
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
-        with open(excel_path, 'rb') as file:
-            st.download_button(label='Download Excel-Datei', data=file, file_name=excel_path)
-
-if __name__ == "__main__":
-    main()
+        with open(excel_path, 'rb') as f:
+            st.download_button('Excel-Datei herunterladen', f, file_name=excel_path)
