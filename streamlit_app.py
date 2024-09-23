@@ -9,6 +9,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
 from openpyxl.drawing.image import Image
 import streamlit as st
+import numpy as np
 
 def download_and_extract(url, keyword):
     """Download and extract the data file."""
@@ -114,6 +115,37 @@ def plot_pivot_tables(pivot_hours, pivot_days):
 
     return image_path_hours, image_path_days
 
+def plot_monthly_temperatures(df, writer):
+    """Plot monthly temperature averages and add trendline to a new sheet."""
+    df['Monat_Jahr'] = df['Zeitstempel'].dt.to_period('M')
+    monthly_avg = df.groupby('Monat_Jahr')['Wert'].mean().reset_index()
+    monthly_avg['Monat_Jahr'] = monthly_avg['Monat_Jahr'].dt.to_timestamp()
+
+    plt.figure(figsize=(12, 8))
+    plt.plot(monthly_avg['Monat_Jahr'], monthly_avg['Wert'], marker='o', label='Monatliche Durchschnittstemperatur')
+    
+    # Trendlinie
+    z = np.polyfit(monthly_avg.index, monthly_avg['Wert'], 1)
+    p = np.poly1d(z)
+    plt.plot(monthly_avg['Monat_Jahr'], p(monthly_avg.index), "r--", label='Trendlinie')
+
+    plt.title('Monatliche Durchschnittstemperaturen mit Trendlinie')
+    plt.xlabel('Monat/Jahr')
+    plt.ylabel('Durchschnittstemperatur (°C)')
+    plt.xticks(rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    
+    # Speichern als temporäre Bilddatei
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+    plt.savefig(temp_file.name, bbox_inches='tight')
+    plt.close()
+
+    # Neues Blatt mit dem Plot hinzufügen
+    worksheet = writer.book.create_sheet(title='Monatliche Temperaturen')
+    img = Image(temp_file.name)
+    worksheet.add_image(img, 'A1')
+
 # Hauptfunktion
 url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
 keyword = 'produkt_tu_stunde'
@@ -139,6 +171,9 @@ if st.button('Daten aufbereiten'):
             img_days = Image(image_path_days)
             worksheet_hours.add_image(img_hours, 'E5')
             worksheet_days.add_image(img_days, 'E5')
+
+            # Plot der monatlichen Temperaturen hinzufügen
+            plot_monthly_temperatures(df, writer)
 
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
         with open(excel_path, 'rb') as f:
