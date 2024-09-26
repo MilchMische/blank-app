@@ -95,15 +95,20 @@ def save_monthly_data(df, writer):
                             cell.fill = fill
 
 def plot_pivot_tables(pivot_hours, pivot_days):
-    """Plot the pivot tables as images."""
+    """Plot the pivot tables as bar charts."""
     def plot_pivot(pivot_table, title):
-        plt.figure(figsize=(12, 8))
-        pivot_table.drop(columns='Summe').T.plot(kind='line', marker='o')  # Transponieren und Linienplot ohne die Summe
+        plt.figure(figsize=(14, 8))
+        ax = pivot_table.drop(columns='Summe').T.plot(kind='bar', width=0.8)
         plt.title(title)
         plt.xlabel('Monat')
         plt.ylabel('Anzahl der Überschreitungen')
         plt.xticks(range(12), ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'], rotation=45)
-        plt.legend(title='Jahr')
+        plt.legend(title='Jahr', bbox_to_anchor=(1.05, 1), loc='upper left')
+        
+        # Add value labels on top of each bar
+        for container in ax.containers:
+            ax.bar_label(container, label_type='edge', rotation=0, padding=2)
+        
         plt.tight_layout()
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
         plt.savefig(temp_file.name, bbox_inches='tight')
