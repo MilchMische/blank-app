@@ -1,4 +1,3 @@
-
 import pandas as pd
 import requests
 import zipfile
@@ -149,3 +148,6 @@ if st.button('Daten aufbereiten'):
         st.success(f"Excel-Datei wurde erstellt: {excel_path}")
         with open(excel_path, 'rb') as f:
             st.download_button('Excel-Datei herunterladen', f, file_name=excel_path)
+
+# URL diskret unten im Streamlit-Fenster anzeigen
+st.markdown(f"<div style='text-align: right; font-size: 12px; color: gray;'>Quelle: <a href='{url}' target='_blank'>{url}</a></div>", unsafe_allow_html=True)
