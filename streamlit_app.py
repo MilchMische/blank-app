@@ -11,7 +11,7 @@ from openpyxl.drawing.image import Image
 import streamlit as st
 
 def download_and_extract(url, keyword):
-    """Download and extract the data file."""
+    """Lädt die Datei herunter und entpackt sie."""
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -28,7 +28,7 @@ def download_and_extract(url, keyword):
         return None
 
 def process_data(file_path):
-    """Process the CSV data."""
+    """Verarbeitet die CSV-Daten."""
     df = pd.read_csv(file_path, sep=';', usecols=["MESS_DATUM", "TT_TU"])
     df.rename(columns={"MESS_DATUM": "Zeitstempel", "TT_TU": "Wert"}, inplace=True)
     df['Zeitstempel'] = pd.to_datetime(df['Zeitstempel'], format='%Y%m%d%H')
@@ -39,7 +39,7 @@ def process_data(file_path):
     return df
 
 def create_pivot_tables(df):
-    """Create pivot tables for temperature exceedances."""
+    """Erstellt Pivot-Tabellen für die Temperaturüberschreitungen."""
     pivot_hours = df[df['Wert'] >= 27].pivot_table(
         index='Jahr', columns='Monat', values='Wert', 
         aggfunc='count', fill_value=0
@@ -63,7 +63,7 @@ def create_pivot_tables(df):
     return pivot_hours, pivot_days
 
 def save_monthly_data(df, writer):
-    """Save individual sheets for each year and month with date, time, and temperature."""
+    """Speichert für jedes Jahr und jeden Monat die Daten in separaten Blättern."""
     months = {
         1: "Jan", 2: "Feb", 3: "Mrz", 4: "Apr", 5: "Mai", 6: "Jun",
         7: "Jul", 8: "Aug", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Dez"
@@ -94,7 +94,7 @@ def save_monthly_data(df, writer):
                             cell.fill = fill
 
 def plot_pivot_tables(pivot_hours, pivot_days):
-    """Plot the pivot tables as bar charts."""
+    """Erstellt Diagramme der Pivot-Tabellen."""
     def plot_pivot(pivot_table, title):
         plt.figure(figsize=(14, 8))
         ax = pivot_table.drop(columns='Summe').T.plot(kind='bar', width=0.8)
@@ -104,7 +104,7 @@ def plot_pivot_tables(pivot_hours, pivot_days):
         plt.xticks(range(12), ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'], rotation=45)
         plt.legend(title='Jahr', bbox_to_anchor=(1.05, 1), loc='upper left')
         
-        # Add value labels on top of each bar
+        # Werte über den Balken hinzufügen
         for container in ax.containers:
             ax.bar_label(container, label_type='edge', rotation=0, padding=2)
         
@@ -149,5 +149,6 @@ if st.button('Daten aufbereiten'):
         with open(excel_path, 'rb') as f:
             st.download_button('Excel-Datei herunterladen', f, file_name=excel_path)
 
-# URL diskret unten im Streamlit-Fenster anzeigen
-st.markdown(f"<div style='text-align: right; font-size: 12px; color: gray;'>Quelle: <a href='{url}' target='_blank'>{url}</a></div>", unsafe_allow_html=True)
+# URL am Ende des Fensters anzeigen
+st.markdown("<hr>", unsafe_allow_html=True)  # Trennlinie zur visuellen Abgrenzung
+st.markdown(f"<div style='text-align: center; font-size: 12px; color: gray;'>Quelle: <a href='{url}' target='_blank'>{url}</a></div>", unsafe_allow_html=True)
