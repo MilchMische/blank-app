@@ -151,4 +151,4 @@ if st.button('Daten aufbereiten'):
 
 # URL am Ende des Fensters anzeigen
 st.markdown("<hr>", unsafe_allow_html=True)  # Trennlinie zur visuellen Abgrenzung
-st.markdown(f"<div style='text-align: center; font-size: 12px; color: gray;'>Datengrundlage: <a href='{url}' target='_blank'>{url}</a></div>", unsafe_allow_html=True)
+st.markdown(f"<div style='text-align: center; font-size: 12px; color: gray;'>DWD-Datengrundlage: <a href='{url}' target='_blank'>{url}</a></div>", unsafe_allow_html=True)
