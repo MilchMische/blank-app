@@ -8,6 +8,7 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
 from openpyxl.drawing.image import Image
+import streamlit as st
 
 def download_and_extract(url, keyword):
     """Lädt die Datei herunter und entpackt sie."""
@@ -23,7 +24,7 @@ def download_and_extract(url, keyword):
                 else:
                     return None
     except Exception as e:
-        print(f"Ein Fehler ist aufgetreten: {e}")
+        st.error(f"Ein Fehler ist aufgetreten: {e}")
         return None
 
 def process_data(file_path):
@@ -122,28 +123,32 @@ def plot_pivot_tables(pivot_hours, pivot_days):
 url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
 keyword = 'produkt_tu_stunde'
 
-target_file = download_and_extract(url, keyword)
-if not target_file:
-    print("Die Zieldatei konnte nicht heruntergeladen oder extrahiert werden.")
-else:
-    df = process_data(target_file)
-    pivot_hours, pivot_days = create_pivot_tables(df)
+if st.button('Daten aufbereiten'):
+    target_file = download_and_extract(url, keyword)
+    if not target_file:
+        st.error("Die Zieldatei konnte nicht heruntergeladen oder extrahiert werden.")
+    else:
+        df = process_data(target_file)
+        pivot_hours, pivot_days = create_pivot_tables(df)
 
-    excel_path = 'Allgemeinverfügung_Überschreitungen_StationHannover.xlsx'
-    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-        pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
-        pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
-        save_monthly_data(df, writer)
-        image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
-        workbook = writer.book
-        worksheet_hours = workbook['Überschreitungen (Stunden)']
-        worksheet_days = workbook['Überschreitungen (Tage)']
-        img_hours = Image(image_path_hours)
-        img_days = Image(image_path_days)
-        worksheet_hours.add_image(img_hours, 'E5')
-        worksheet_days.add_image(img_days, 'E5')
+        excel_path = 'Allgemeinverfügung_Überschreitungen_StationHannover.xlsx'
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
+            pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
+            save_monthly_data(df, writer)
+            image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
+            workbook = writer.book
+            worksheet_hours = workbook['Überschreitungen (Stunden)']
+            worksheet_days = workbook['Überschreitungen (Tage)']
+            img_hours = Image(image_path_hours)
+            img_days = Image(image_path_days)
+            worksheet_hours.add_image(img_hours, 'E5')
+            worksheet_days.add_image(img_days, 'E5')
 
-    print(f"Excel-Datei wurde erstellt: {excel_path}")
+        st.success(f"Excel-Datei wurde erstellt: {excel_path}")
+        with open(excel_path, 'rb') as f:
+            st.download_button('Excel-Datei herunterladen', f, file_name=excel_path)
 
-    from google.colab import files
-    files.download(excel_path)
+# URL am Ende des Fensters anzeigen
+st.markdown("<hr>", unsafe_allow_html=True)  # Trennlinie zur visuellen Abgrenzung
+st.markdown(f"<div style='text-align: center; font-size: 12px; color: gray;'>DWD-Datengrundlage: <a href='{url}' target='_blank'>{url}</a></div>", unsafe_allow_html=True)
