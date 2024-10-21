@@ -8,7 +8,6 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill
 from openpyxl.drawing.image import Image
-import streamlit as st
 
 def download_and_extract(url, keyword):
     """Lädt die Datei herunter und entpackt sie."""
@@ -24,7 +23,7 @@ def download_and_extract(url, keyword):
                 else:
                     return None
     except Exception as e:
-        st.error(f"Ein Fehler ist aufgetreten: {e}")
+        print(f"Ein Fehler ist aufgetreten: {e}")
         return None
 
 def process_data(file_path):
@@ -37,13 +36,6 @@ def process_data(file_path):
     df['Tag'] = df['Zeitstempel'].dt.date
     df['Uhrzeit'] = df['Zeitstempel'].dt.time
     return df
-
-def calculate_monthly_avg(df):
-    """Berechnet monatliche Durchschnittstemperaturen für jedes Jahr."""
-    df_avg = df.groupby(['Jahr', 'Monat'])['Wert'].mean().reset_index()
-    df_avg_pivot = df_avg.pivot_table(index='Jahr', columns='Monat', values='Wert', fill_value=0)
-    df_avg_pivot.columns = ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
-    return df_avg_pivot
 
 def create_pivot_tables(df):
     """Erstellt Pivot-Tabellen für die Temperaturüberschreitungen."""
@@ -126,62 +118,32 @@ def plot_pivot_tables(pivot_hours, pivot_days):
 
     return image_path_hours, image_path_days
 
-def plot_monthly_avg(df_avg_pivot):
-    """Erstellt ein Diagramm der monatlichen Durchschnittstemperaturen."""
-    plt.figure(figsize=(14, 8))
-    ax = df_avg_pivot.T.plot(kind='line', marker='o')
-    plt.title('Monatliche Durchschnittstemperaturen pro Jahr')
-    plt.xlabel('Monat')
-    plt.ylabel('Temperatur (°C)')
-    plt.xticks(range(12), ['Jan', 'Feb', 'Mrz', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'], rotation=45)
-    plt.legend(title='Jahr', bbox_to_anchor=(1.05, 1), loc='upper left')
-    
-    plt.tight_layout()
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-    plt.savefig(temp_file.name, bbox_inches='tight')
-    plt.close()
-    return temp_file.name
-
 # Hauptfunktion
 url = 'https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/air_temperature/recent/stundenwerte_TU_02014_akt.zip'
 keyword = 'produkt_tu_stunde'
 
-if st.button('Daten aufbereiten'):
-    target_file = download_and_extract(url, keyword)
-    if not target_file:
-        st.error("Die Zieldatei konnte nicht heruntergeladen oder extrahiert werden.")
-    else:
-        df = process_data(target_file)
-        pivot_hours, pivot_days = create_pivot_tables(df)
+target_file = download_and_extract(url, keyword)
+if not target_file:
+    print("Die Zieldatei konnte nicht heruntergeladen oder extrahiert werden.")
+else:
+    df = process_data(target_file)
+    pivot_hours, pivot_days = create_pivot_tables(df)
 
-        # Berechne monatliche Durchschnittstemperaturen
-        df_avg_pivot = calculate_monthly_avg(df)
+    excel_path = 'Allgemeinverfügung_Überschreitungen_StationHannover.xlsx'
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
+        pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
+        save_monthly_data(df, writer)
+        image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
+        workbook = writer.book
+        worksheet_hours = workbook['Überschreitungen (Stunden)']
+        worksheet_days = workbook['Überschreitungen (Tage)']
+        img_hours = Image(image_path_hours)
+        img_days = Image(image_path_days)
+        worksheet_hours.add_image(img_hours, 'E5')
+        worksheet_days.add_image(img_days, 'E5')
 
-        excel_path = 'Allgemeinverfügung_Überschreitungen_StationHannover.xlsx'
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            pivot_hours.to_excel(writer, sheet_name='Überschreitungen (Stunden)')
-            pivot_days.to_excel(writer, sheet_name='Überschreitungen (Tage)')
-            
-            # Füge die monatlichen Durchschnittstemperaturen hinzu
-            df_avg_pivot.to_excel(writer, sheet_name='Monatliche Mittelwerte')
-            
-            save_monthly_data(df, writer)
-            
-            image_path_hours, image_path_days = plot_pivot_tables(pivot_hours, pivot_days)
-            workbook = writer.book
-            worksheet_hours = workbook['Überschreitungen (Stunden)']
-            worksheet_days = workbook['Überschreitungen (Tage)']
-            img_hours = Image(image_path_hours)
-            img_days = Image(image_path_days)
-            worksheet_hours.add_image(img_hours, 'E5')
-            worksheet_days.add_image(img_days, 'E5')
+    print(f"Excel-Datei wurde erstellt: {excel_path}")
 
-            # Erstelle und füge das Diagramm der monatlichen Durchschnittstemperaturen hinzu
-            image_path_avg = plot_monthly_avg(df_avg_pivot)
-            worksheet_avg = workbook['Monatliche Mittelwerte']
-            img_avg = Image(image_path_avg)
-            worksheet_avg.add_image(img_avg, 'E5')
-
-        st.success(f"Excel-Datei wurde erstellt: {excel_path}")
-        with open(excel_path, 'rb') as f:
-            st.download_button('Excel-Datei herunterladen', f, file_name=excel_path)
+    from google.colab import files
+    files.download(excel_path)
